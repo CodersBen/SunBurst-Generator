@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Sunburst Generator (SVG)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Custom Scrollbar for desktop sidebar */
+        @media (min-width: 768px) {
+            aside::-webkit-scrollbar {
+                width: 8px;
+            }
+            aside::-webkit-scrollbar-track {
+                background: #1a202c;
+            }
+            aside::-webkit-scrollbar-thumb {
+                background: #4a5568;
+                border-radius: 4px;
+            }
+            aside::-webkit-scrollbar-thumb:hover {
+                background: #718096;
+            }
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #2d3748;
+            border-radius: 3px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #6366f1;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #6366f1;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #e2e8f0;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 40px;
+            height: 40px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border-radius: 50%;
+            border: 2px solid #4a5568;
+        }
+        input[type="color"]::-moz-color-swatch {
+            border-radius: 50%;
+            border: 2px solid #4a5568;
+        }
+        .color-input-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .color-input-wrapper label {
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+            color: #9ca3af;
+        }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 flex flex-col md:flex-row md:h-screen md:overflow-hidden">
+
+    <!-- SVG Area (Order 1 on mobile, 2 on desktop) -->
+    <main class="flex-1 flex items-center justify-center p-8 relative bg-grid-pattern h-[60vh] md:h-auto md:order-2 overflow-auto">
+        <svg id="sunburst-svg" class="rounded-lg shadow-2xl max-w-full max-h-full"></svg>
+    </main>
+    
+    <!-- Controls Sidebar (Order 2 on mobile, 1 on desktop) -->
+    <aside class="w-full md:w-80 lg:w-96 bg-gray-800/50 backdrop-blur-sm p-4 md:p-6 space-y-6 md:overflow-y-auto border-t md:border-t-0 md:border-r border-gray-700 md:order-1">
+        <div class="flex items-center space-x-3">
+             <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
+            </svg>
+            <h1 class="text-2xl font-bold text-white">Sunburst Generator</h1>
+        </div>
+
+        <!-- Canvas Size -->
+        <div class="space-y-4 pt-4 border-t border-gray-700">
+            <h2 class="text-lg font-semibold text-indigo-400">Canvas</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="canvas-width" class="text-sm font-medium mb-1 block">Width (px)</label>
+                    <input type="number" id="canvas-width" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="canvas-height" class="text-sm font-medium mb-1 block">Height (px)</label>
+                    <input type="number" id="canvas-height" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Basic Settings -->
+        <div class="space-y-4 pt-4 border-t border-gray-700">
+            <h2 class="text-lg font-semibold text-indigo-400">Settings</h2>
+            <div>
+                <label for="rays" class="flex justify-between text-sm font-medium mb-1">Rays <span id="rays-value" class="text-indigo-400 font-semibold">16</span></label>
+                <input type="range" id="rays" min="2" max="100" value="24" step="2">
+            </div>
+            <div>
+                <label for="centerX" class="flex justify-between text-sm font-medium mb-1">Center X <span id="centerX-value" class="text-indigo-400 font-semibold">50%</span></label>
+                <input type="range" id="centerX" min="0" max="100" value="50">
+            </div>
+            <div>
+                <label for="centerY" class="flex justify-between text-sm font-medium mb-1">Center Y <span id="centerY-value" class="text-indigo-400 font-semibold">50%</span></label>
+                <input type="range" id="centerY" min="0" max="100" value="50">
+            </div>
+        </div>
+
+        <!-- Color & Gradient -->
+        <div class="space-y-4 pt-4 border-t border-gray-700">
+            <h2 class="text-lg font-semibold text-indigo-400">Fill Style</h2>
+            <div id="gradient-type" class="grid grid-cols-3 gap-2">
+                <button data-type="solid" class="gradient-btn bg-indigo-600 text-white px-3 py-2 rounded-md text-sm font-medium">Solid</button>
+                <button data-type="linear" class="gradient-btn bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-md text-sm font-medium">Linear</button>
+                <button data-type="radial" class="gradient-btn bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-md text-sm font-medium">Radial</button>
+            </div>
+            
+            <div id="solid-colors-container" class="flex items-center justify-around gap-3 pt-4">
+                 <div class="color-input-wrapper">
+                    <label for="solid-color1">Color 1</label>
+                    <input type="color" id="solid-color1" value="#FDE047">
+                </div>
+                <div class="color-input-wrapper">
+                    <label for="solid-color2">Color 2</label>
+                    <input type="color" id="solid-color2" value="#F97316">
+                </div>
+            </div>
+
+            <div id="gradient-editor" class="hidden flex items-center justify-around gap-3 pt-4">
+                <div class="color-input-wrapper">
+                   <label for="gradient-color1">Start Color</label>
+                   <input type="color" id="gradient-color1" value="#FDE047">
+               </div>
+               <div class="color-input-wrapper">
+                   <label for="gradient-color2">End Color</label>
+                   <input type="color" id="gradient-color2" value="#F97316">
+               </div>
+           </div>
+
+            <div class="pt-4">
+                <div id="gradient-angle-container" class="hidden">
+                    <label for="gradient-angle" class="flex justify-between text-sm font-medium mb-1">Linear Angle <span id="gradient-angle-value" class="text-indigo-400 font-semibold">0°</span></label>
+                    <input type="range" id="gradient-angle" min="0" max="360" value="0">
+                </div>
+            </div>
+        </div>
+
+        <!-- Warp Effect -->
+        <div class="space-y-4 pt-4 border-t border-gray-700">
+            <h2 class="text-lg font-semibold text-indigo-400">Warp Effect</h2>
+            <div>
+                <label for="warp-type" class="text-sm font-medium mb-1 block">Type</label>
+                <select id="warp-type" class="w-full bg-gray-700 border border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="none">None</option>
+                    <option value="twist">Twist</option>
+                </select>
+            </div>
+             <div id="warp-strength-container">
+                 <label for="warp-strength" id="warp-strength-label" class="flex justify-between text-sm font-medium mb-1">Bend <span id="warp-strength-value" class="text-indigo-400 font-semibold">65%</span></label>
+                <input type="range" id="warp-strength" min="-100" max="100" value="65" step="1">
+            </div>
+            <div id="twist-distortion-container" class="hidden space-y-4">
+                 <div>
+                    <label for="horizontal-distortion" class="flex justify-between text-sm font-medium mb-1">Horizontal <span id="horizontal-distortion-value" class="text-indigo-400 font-semibold">0%</span></label>
+                    <input type="range" id="horizontal-distortion" min="-100" max="100" value="0" step="1">
+                </div>
+                 <div>
+                    <label for="vertical-distortion" class="flex justify-between text-sm font-medium mb-1">Vertical <span id="vertical-distortion-value" class="text-indigo-400 font-semibold">0%</span></label>
+                    <input type="range" id="vertical-distortion" min="-100" max="100" value="0" step="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+         <div class="space-y-4 pt-4 border-t border-gray-700">
+             <h2 class="text-lg font-semibold text-indigo-400">Actions</h2>
+             <button id="download-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md flex items-center justify-center gap-2 transition-colors">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+                Download SVG
+            </button>
+         </div>
+    </aside>
+
+    <script>
+        const svg = document.getElementById('sunburst-svg');
+        // --- UI Elements ---
+        const canvasWidthInput = document.getElementById('canvas-width');
+        const canvasHeightInput = document.getElementById('canvas-height');
+
+        const raysSlider = document.getElementById('rays');
+        const raysValue = document.getElementById('rays-value');
+        const centerXSlider = document.getElementById('centerX');
+        const centerXValue = document.getElementById('centerX-value');
+        const centerYSlider = document.getElementById('centerY');
+        const centerYValue = document.getElementById('centerY-value');
+        
+        const solidColor1Input = document.getElementById('solid-color1');
+        const solidColor2Input = document.getElementById('solid-color2');
+        const solidColorsContainer = document.getElementById('solid-colors-container');
+
+        const gradientTypeContainer = document.getElementById('gradient-type');
+        const gradientEditor = document.getElementById('gradient-editor');
+        const gradientColor1Input = document.getElementById('gradient-color1');
+        const gradientColor2Input = document.getElementById('gradient-color2');
+        const gradientAngleContainer = document.getElementById('gradient-angle-container');
+        const gradientAngleSlider = document.getElementById('gradient-angle');
+        const gradientAngleValue = document.getElementById('gradient-angle-value');
+        
+        const warpTypeSelect = document.getElementById('warp-type');
+        const warpStrengthContainer = document.getElementById('warp-strength-container');
+        const warpStrengthLabel = document.getElementById('warp-strength-label');
+        const warpStrengthSlider = document.getElementById('warp-strength');
+        const warpStrengthValue = document.getElementById('warp-strength-value');
+        const twistDistortionContainer = document.getElementById('twist-distortion-container');
+        const horizontalDistortionSlider = document.getElementById('horizontal-distortion');
+        const horizontalDistortionValue = document.getElementById('horizontal-distortion-value');
+        const verticalDistortionSlider = document.getElementById('vertical-distortion');
+        const verticalDistortionValue = document.getElementById('vertical-distortion-value');
+
+        const downloadBtn = document.getElementById('download-btn');
+        // --- State ---
+        let state = {
+            rays: 36,
+            centerX: 50,
+            centerY: 50,
+            solidColors: ['#FDE047', '#F97316'],
+            gradientColors: ['#FDE047', '#F97316'],
+            gradientType: 'solid',
+            gradientAngle: 0,
+            warpType: 'twist',
+            warpStrength: 65,
+            horizontalDistortion: 0,
+            verticalDistortion: 0,
+            canvasWidth: 1000,
+            canvasHeight: 1000,
+        };
+        
+        let debounceTimer;
+
+        // --- SVG Sizing ---
+        function setCanvasSize() {
+            svg.setAttribute('viewBox', `0 0 ${state.canvasWidth} ${state.canvasHeight}`);
+            requestDraw();
+        }
+        // --- Core Drawing Logic ---
+        function drawSunburst() {
+            const { rays, centerX, centerY, solidColors, gradientColors, gradientType, gradientAngle, warpType, warpStrength, horizontalDistortion, verticalDistortion } = state;
+            
+            const width = state.canvasWidth;
+            const height = state.canvasHeight;
+            const cx = width * (centerX / 100);
+            const cy = height * (centerY / 100);
+            const angleStep = 360 / rays;
+            let defs = '';
+
+            // --- Define Gradients ---
+            if (gradientType === 'linear' || gradientType === 'radial') {
+                const gradId = "sunburstGradient";
+                let stopsHtml = `
+                    <stop offset="0%" stop-color="${gradientColors[0]}" />
+                    <stop offset="100%" stop-color="${gradientColors[1]}" />
+                `;
+
+                if (gradientType === 'linear') {
+                    const angleRad = (gradientAngle - 90) * (Math.PI / 180);
+                    const r = Math.sqrt(width*width + height*height) / 2;
+                    const x1 = cx + Math.cos(angleRad) * r;
+                    const y1 = cy + Math.sin(angleRad) * r;
+                    const x2 = cx - Math.cos(angleRad) * r;
+                    const y2 = cy - Math.sin(angleRad) * r;
+                    defs += `<linearGradient id="${gradId}" x1="${x2}" y1="${y2}" x2="${x1}" y2="${y1}" gradientUnits="userSpaceOnUse">${stopsHtml}</linearGradient>`;
+                } else { // Radial
+                    const r = Math.sqrt(width*width + height*height) / 2;
+                    defs += `<radialGradient id="${gradId}" cx="${cx}" cy="${cy}" r="${r}" gradientUnits="userSpaceOnUse">${stopsHtml}</radialGradient>`;
+                }
+            }
+
+            // --- Build Rays ---
+            let paths = '';
+            const radius = Math.sqrt(width*width + height*height);
+
+            function createRayPath(i) {
+                const startAngleRad = ((i * angleStep) - 90) * Math.PI / 180;
+                const endAngleRad = (((i + 1) * angleStep) - 90 + 0.5) * Math.PI / 180; // Overlap
+                
+                if (warpType === 'twist' && warpStrength !== 0) {
+                    const bend = warpStrength * (Math.PI / 180); 
+
+                    const distort = (x, y) => {
+                        const dx = x - cx;
+                        const dy = y - cy;
+                        const r = Math.sqrt(dx*dx + dy*dy);
+                        const angle = Math.atan2(dy, dx);
+                        const newAngle = angle + (r / radius) * bend;
+                        
+                        let newX = cx + r * Math.cos(newAngle);
+                        let newY = cy + r * Math.sin(newAngle);
+
+                        newX += (horizontalDistortion / 100) * (y-cy);
+                        newY += (verticalDistortion / 100) * (x-cx);
+                        
+                        return [newX, newY];
+                    };
+
+                    const x1 = cx + radius * Math.cos(startAngleRad);
+                    const y1 = cy + radius * Math.sin(startAngleRad);
+                    const x2 = cx + radius * Math.cos(endAngleRad);
+                    const y2 = cy + radius * Math.sin(endAngleRad);
+                    
+                    const [p1x, p1y] = distort(x1, y1);
+                    const [p2x, p2y] = distort(x2, y2);
+
+                    const [cp1x, cp1y] = distort(cx + radius/2 * Math.cos(startAngleRad), cy + radius/2 * Math.sin(startAngleRad));
+                    const [cp2x, cp2y] = distort(cx + radius/2 * Math.cos(endAngleRad), cy + radius/2 * Math.sin(endAngleRad));
+
+                    return `M${cx},${cy} Q ${cp1x},${cp1y} ${p1x},${p1y} L ${p2x},${p2y} Q ${cp2x},${cp2y} ${cx},${cy} Z`;
+                } else {
+                     const x1 = cx + radius * Math.cos(startAngleRad);
+                     const y1 = cy + radius * Math.sin(startAngleRad);
+                     const x2 = cx + radius * Math.cos(endAngleRad);
+                     const y2 = cy + radius * Math.sin(endAngleRad);
+                     return `M${cx},${cy} L${x1},${y1} A${radius},${radius} 0 0,1 ${x2},${y2} Z`;
+                }
+            }
+            
+            if (gradientType === 'solid') {
+                paths += `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${solidColors[1]}" />`;
+                for (let i = 0; i < rays; i += 2) {
+                    paths += `<path d="${createRayPath(i)}" fill="${solidColors[0]}" />`;
+                }
+            } else { 
+                let evenRays = '';
+                let oddRays = '';
+                const baseColorForGradientMode = solidColors[0];
+
+                for (let i = 0; i < rays; i++) {
+                    const pathData = createRayPath(i);
+                    if (i % 2 === 0) { 
+                        evenRays += `<path d="${pathData}" fill="${baseColorForGradientMode}" />`;
+                    } else { 
+                        oddRays += `<path d="${pathData}" fill="url(#sunburstGradient)" />`;
+                    }
+                }
+                paths = evenRays + oddRays;
+            }
+           
+            svg.innerHTML = `
+                <defs>${defs}</defs>
+                <g shape-rendering="geometricPrecision">
+                    ${paths}
+                </g>
+            `;
+        }
+        
+        // --- Debounced Draw Request ---
+        function requestDraw() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(drawSunburst, 16); 
+        }
+        // --- Event Listeners & UI Updates ---
+        function setupEventListeners() {
+             window.addEventListener('resize', setCanvasSize);
+            
+            const inputs = [raysSlider, centerXSlider, centerYSlider, solidColor1Input, solidColor2Input, gradientColor1Input, gradientColor2Input, gradientAngleSlider, warpStrengthSlider, horizontalDistortionSlider, verticalDistortionSlider, canvasWidthInput, canvasHeightInput];
+            inputs.forEach(input => input.addEventListener('input', (e) => {
+                const { id, value } = e.target;
+                
+                switch (id) {
+                    case 'rays': state.rays = parseInt(value); break;
+                    case 'centerX': state.centerX = parseFloat(value); break;
+                    case 'centerY': state.centerY = parseFloat(value); break;
+                    case 'solid-color1': state.solidColors[0] = value; break;
+                    case 'solid-color2': state.solidColors[1] = value; break;
+                    case 'gradient-color1': state.gradientColors[0] = value; break;
+                    case 'gradient-color2': state.gradientColors[1] = value; break;
+                    case 'gradient-angle': state.gradientAngle = parseInt(value); break;
+                    case 'warp-strength': state.warpStrength = parseFloat(value); break;
+                    case 'horizontal-distortion': state.horizontalDistortion = parseFloat(value); break;
+                    case 'vertical-distortion': state.verticalDistortion = parseFloat(value); break;
+                    case 'canvas-width': 
+                        state.canvasWidth = parseInt(value) || 1; 
+                        setCanvasSize();
+                        return;
+                    case 'canvas-height': 
+                        state.canvasHeight = parseInt(value) || 1; 
+                        setCanvasSize();
+                        return;
+                }
+
+                const valueElId = id.replace(/solid-color|gradient-color/, 'color');
+                const valueEl = document.getElementById(`${valueElId}-value`);
+
+                if (valueEl) {
+                     if (id.includes('angle')) {
+                         valueEl.textContent = `${value}°`;
+                    } else if (id.includes('center') || id.includes('distortion') || id === 'warp-strength') {
+                        valueEl.textContent = `${value}%`;
+                    } else {
+                        valueEl.textContent = value;
+                    }
+                }
+                requestDraw();
+            }));
+
+            gradientTypeContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    state.gradientType = e.target.dataset.type;
+                    document.querySelectorAll('.gradient-btn').forEach(btn => {
+                        btn.classList.remove('bg-indigo-600', 'text-white');
+                        btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
+                    });
+                    e.target.classList.add('bg-indigo-600', 'text-white');
+                    e.target.classList.remove('bg-gray-700', 'hover:bg-gray-600');
+                    
+                    const isSolid = state.gradientType === 'solid';
+                    solidColorsContainer.style.display = isSolid ? 'flex' : 'none';
+                    gradientEditor.style.display = isSolid ? 'none' : 'flex';
+                    gradientAngleContainer.classList.toggle('hidden', state.gradientType !== 'linear');
+                    
+                    requestDraw();
+                }
+            });
+            
+            warpTypeSelect.addEventListener('change', (e) => {
+                state.warpType = e.target.value;
+                warpStrengthContainer.style.display = state.warpType === 'none' ? 'none' : 'block';
+                
+                const isTwist = state.warpType === 'twist';
+                twistDistortionContainer.classList.toggle('hidden', !isTwist);
+                
+                if(isTwist){
+                    warpStrengthLabel.innerHTML = `Bend <span id="warp-strength-value" class="text-indigo-400 font-semibold">${warpStrengthSlider.value}%</span>`;
+                    warpStrengthSlider.min = -100;
+                    warpStrengthSlider.max = 100;
+                }
+                requestDraw();
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                const svgClone = svg.cloneNode(true);
+                svgClone.setAttribute('width', state.canvasWidth);
+                svgClone.setAttribute('height', state.canvasHeight);
+                const svgData = new XMLSerializer().serializeToString(svgClone);
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'sunburst.svg';
+                link.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        // --- Initialization ---
+        function init() {
+            solidColor1Input.value = state.solidColors[0];
+            solidColor2Input.value = state.solidColors[1];
+            gradientColor1Input.value = state.gradientColors[0];
+            gradientColor2Input.value = state.gradientColors[1];
+            raysSlider.value = state.rays;
+            warpStrengthSlider.value = state.warpStrength;
+            warpTypeSelect.value = state.warpType;
+            horizontalDistortionSlider.value = state.horizontalDistortion;
+            verticalDistortionSlider.value = state.verticalDistortion;
+            canvasWidthInput.value = state.canvasWidth;
+            canvasHeightInput.value = state.canvasHeight;
+            
+            const isSolid = state.gradientType === 'solid';
+            solidColorsContainer.style.display = isSolid ? 'flex' : 'none';
+            gradientEditor.style.display = isSolid ? 'none' : 'flex';
+            gradientAngleContainer.classList.toggle('hidden', true);
+
+            raysValue.textContent = raysSlider.value;
+            centerXValue.textContent = `${centerXSlider.value}%`;
+            centerYValue.textContent = `${centerYSlider.value}%`;
+            gradientAngleValue.textContent = `${gradientAngleSlider.value}°`;
+            warpStrengthValue.textContent = `${warpStrengthSlider.value}%`;
+            horizontalDistortionValue.textContent = `${horizontalDistortionSlider.value}%`;
+            verticalDistortionValue.textContent = `${verticalDistortionSlider.value}%`;
+            
+            const isWarpActive = state.warpType !== 'none';
+            warpStrengthContainer.style.display = isWarpActive ? 'block' : 'none';
+            twistDistortionContainer.classList.toggle('hidden', state.warpType !== 'twist');
+            
+            if (isWarpActive && state.warpType === 'twist') {
+                 warpStrengthLabel.innerHTML = `Bend <span id="warp-strength-value" class="text-indigo-400 font-semibold">${warpStrengthSlider.value}%</span>`;
+                 warpStrengthSlider.min = -100;
+                 warpStrengthSlider.max = 100;
+            }
+            
+            setupEventListeners();
+            setCanvasSize();
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
